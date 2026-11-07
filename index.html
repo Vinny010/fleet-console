@@ -120,7 +120,11 @@
   }
 
   function render(s){
-    anchor={t:Date.now(), total:s.total_keys, rate:Number(s.comb_rate)};
+    // ignore a stale/cached re-fetch that is older than what we're already showing
+    if(anchor && Number(s.updated_ms) < anchor.t) return;
+    // anchor to WHEN THE DATA WAS PRODUCED, not page-load time, so the count always
+    // projects forward to 'now' and never jumps back on refresh even if the push is minutes old
+    anchor={t:Number(s.updated_ms), total:s.total_keys, rate:Number(s.comb_rate)};
     document.getElementById('fleetrate').innerHTML=(Number(s.fleet_rate)/1e9).toFixed(1)+'<span class="u"> Gk/s</span>';
     document.getElementById('combrate').innerHTML=(Number(s.comb_rate)/1e9).toFixed(1)+'<span class="u"> Gk/s</span>';
     document.getElementById('burn').textContent=s.burn_day;
