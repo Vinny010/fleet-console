@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P71 Scan Console</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#090d13; --panel:#111823; --panel2:#0d141d; --line:#1d2836;
+    --fg:#dbe4f0; --muted:#7c8aa0; --dim:#55637a;
+    --mint:#39e0a6; --mint-dim:#1d7a5e; --amber:#f5b94a; --red:#f2645a;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;
+    background-image:radial-gradient(120% 80% at 50% -10%,#0f1824 0%,#090d13 60%);
+    background-attachment:fixed;
+    padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .wrap{max-width:760px;margin:0 auto;
+    padding-left:max(16px,env(safe-area-inset-left,0px));
+    padding-right:max(16px,env(safe-area-inset-right,0px));
+    padding-block:22px 40px}
+  .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--mint);
+    box-shadow:0 0 0 0 rgba(57,224,166,.6);animation:pulse 2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(57,224,166,.55)}70%{box-shadow:0 0 0 7px rgba(57,224,166,0)}100%{box-shadow:0 0 0 0 rgba(57,224,166,0)}}
+  @media (prefers-reduced-motion:reduce){.dot{animation:none}}
+  .title{font-family:var(--mono);font-size:.82rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .title b{color:var(--fg);font-weight:600}
+  .hero{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px 20px 22px;text-align:center;position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(57,224,166,.06),transparent 55%);pointer-events:none}
+  .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mint);margin-bottom:12px}
+  .eyebrow.warn{color:var(--amber)} .eyebrow.hit{color:var(--red)}
+  .odo{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums;
+    font-size:clamp(1.55rem,8.5vw,3.1rem);line-height:1;letter-spacing:-.01em;color:var(--fg);white-space:nowrap;max-width:100%;overflow:hidden}
+  .odo .lo{color:var(--mint)}
+  .quad{margin-top:12px;font-family:var(--mono);color:var(--muted);font-size:.9rem}
+  .quad b{color:var(--fg);font-size:1.15rem;font-weight:600}
+  .sub{margin-top:4px;font-size:.78rem;color:var(--dim)}
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+  .cell{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 12px}
+  .cell .k{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+  .cell .v{font-family:var(--mono);font-size:1.2rem;font-weight:600;margin-top:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .cell .u{color:var(--muted);font-size:.82rem;font-weight:400}
+  .section-h{font-family:var(--mono);font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 2px 12px;display:flex;justify-content:space-between}
+  .shards{display:flex;flex-direction:column;gap:10px}
+  .shard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .shard .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .shard .nm{font-weight:600;font-size:.95rem}
+  .shard .left{font-family:var(--mono);font-size:.86rem;color:var(--fg);font-variant-numeric:tabular-nums}
+  .shard .left b{color:var(--mint)}
+  .bar{height:7px;border-radius:5px;background:#0a0f17;border:1px solid var(--line);margin-top:9px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--mint-dim),var(--mint));border-radius:5px;transition:width .5s linear}
+  .meter{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px}
+  .meter .row{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+  .meter .big{font-family:var(--mono);font-size:1.7rem;font-weight:600;font-variant-numeric:tabular-nums}
+  .meter .run{font-family:var(--mono);font-size:.9rem;color:var(--muted)}
+  .meter .run b{color:var(--amber)}
+  .bar.amber i{background:linear-gradient(90deg,#8a6411,var(--amber))}
+  .foot{margin-top:24px;font-size:.74rem;color:var(--dim);line-height:1.55;text-align:center;font-family:var(--mono)}
+  .foot b{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="dot" id="dot"></span>
+    <span class="title"><b>Puzzle&nbsp;#71</b> &nbsp;·&nbsp; fleet scan console</span>
+  </div>
+  <div class="hero">
+    <div class="eyebrow" id="statusline">connecting…</div>
+    <div class="odo" id="odo">—</div>
+    <div class="quad"><b id="quad">0.000</b> quadrillion keys swept</div>
+    <div class="sub">home RTX&nbsp;3090 + 4× RTX&nbsp;5090 · lifetime total</div>
+  </div>
+  <div class="strip">
+    <div class="cell"><div class="k">Fleet rate</div><div class="v" id="fleetrate">—<span class="u"> Gk/s</span></div></div>
+    <div class="cell"><div class="k">Combined</div><div class="v" id="combrate">—<span class="u"> Gk/s</span></div></div>
+    <div class="cell"><div class="k">Keys / sec</div><div class="v" id="persec">—<span class="u">B</span></div></div>
+  </div>
+  <div class="section-h"><span>Fleet shards</span><span id="fleeteta">ETA —</span></div>
+  <div class="shards" id="shards"></div>
+  <div class="section-h"><span>Vast balance</span><span>burn ~$<span id="burn">68</span> / day</span></div>
+  <div class="meter">
+    <div class="row"><div class="big" id="bal">—</div><div class="run">runway <b id="runway">—</b></div></div>
+    <div class="bar amber"><i id="balbar" style="width:100%"></i></div>
+  </div>
+  <div class="foot" id="foot">waiting for first data push…</div>
+</div>
+<script>
+(function(){
+  var anchor=null, shardDom=false;
+  var odoEl=document.getElementById('odo'), lastLen=-1;
+  function fitOdo(force){
+    var len=odoEl.textContent.length;
+    if(!force && len===lastLen) return; lastLen=len;
+    odoEl.style.fontSize='';
+    var box=odoEl.clientWidth;
+    if(box>0 && odoEl.scrollWidth>box){
+      var cur=parseFloat(getComputedStyle(odoEl).fontSize);
+      odoEl.style.fontSize=(cur*box/odoEl.scrollWidth*0.99)+'px';
+    }
+  }
+  window.addEventListener('resize',function(){fitOdo(true);});
+
+  function buildShards(s){
+    var el=document.getElementById('shards'); el.innerHTML='';
+    s.shards.forEach(function(sh,i){
+      var d=document.createElement('div'); d.className='shard';
+      d.innerHTML='<div class="row"><div class="nm">'+sh.name+'</div>'+
+        '<div class="left" id="sl'+i+'"></div></div><div class="bar"><i id="sb'+i+'"></i></div>';
+      el.appendChild(d);
+    });
+    shardDom=true;
+  }
+
+  function render(s){
+    anchor={t:Date.now(), total:s.total_keys, rate:Number(s.comb_rate)};
+    document.getElementById('fleetrate').innerHTML=(Number(s.fleet_rate)/1e9).toFixed(1)+'<span class="u"> Gk/s</span>';
+    document.getElementById('combrate').innerHTML=(Number(s.comb_rate)/1e9).toFixed(1)+'<span class="u"> Gk/s</span>';
+    document.getElementById('burn').textContent=s.burn_day;
+    if(!shardDom) buildShards(s);
+    var fleetLeft=0;
+    s.shards.forEach(function(sh,i){
+      fleetLeft+=sh.left;
+      var pct=Math.max(0,Math.min(100,(sh.total-sh.left)/sh.total*100));
+      document.getElementById('sl'+i).innerHTML='<b>'+sh.left+'</b> blocks left';
+      document.getElementById('sb'+i).style.width=pct.toFixed(2)+'%';
+    });
+    var etaDays=fleetLeft/Number(s.fleet_blk_day);
+    document.getElementById('fleeteta').textContent='ETA ~'+etaDays.toFixed(1)+' d';
+    var bal=Number(s.balance);
+    document.getElementById('bal').textContent='$'+bal.toFixed(2);
+    document.getElementById('runway').textContent=(bal/s.burn_day).toFixed(1)+' d';
+    document.getElementById('balbar').style.width=Math.max(0,Math.min(100,bal/Number(s.balance_start||bal)*100)).toFixed(1)+'%';
+
+    var dot=document.getElementById('dot'), eye=document.getElementById('statusline');
+    eye.className='eyebrow';
+    if(s.hit){ eye.className='eyebrow hit'; eye.textContent='*** HIT DETECTED — CHECK PHONE ***'; dot.style.background='var(--red)'; }
+    else if(s.boxes_online<4){ eye.className='eyebrow warn'; eye.textContent=s.boxes_online+' / 4 cards online · check fleet'; dot.style.background='var(--amber)'; }
+    else { eye.textContent='4 / 4 cards online · scanning'; dot.style.background=(bal/s.burn_day<etaDays)?'var(--amber)':'var(--mint)'; }
+
+    var age=Math.round((Date.now()-Number(s.updated_ms))/1000);
+    var d=new Date(Number(s.updated_ms));
+    document.getElementById('foot').innerHTML='Live from the fleet · last push '+
+      (age<120?age+'s ago':Math.round(age/60)+'m ago')+' · '+
+      d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+
+      '<br>the monitor pushes fresh numbers every ~10 min; the counter ticks between pushes.';
+  }
+
+  function tick(){
+    if(!anchor) return;
+    var elapsed=(Date.now()-anchor.t)/1000;
+    var added=BigInt(Math.floor(anchor.rate*elapsed));
+    var ks=(BigInt(anchor.total)+added).toString();
+    var commas=ks.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    var cut=commas.length>13?commas.length-13:0;
+    odoEl.innerHTML=commas.slice(0,cut)+'<span class="lo">'+commas.slice(cut)+'</span>';
+    fitOdo(false);
+    document.getElementById('quad').textContent=(Number(ks)/1e15).toFixed(3);
+    document.getElementById('persec').innerHTML=(anchor.rate/1e9).toFixed(1)+'<span class="u">B</span>';
+  }
+
+  function load(){
+    fetch('status.json?cb='+Date.now(),{cache:'no-store'})
+      .then(function(r){return r.json();})
+      .then(function(s){ render(s); tick(); })
+      .catch(function(){ /* keep ticking on last good anchor */ });
+  }
+  load(); setInterval(load,20000); setInterval(tick,120);
+})();
+</script>
+</body>
+</html>
