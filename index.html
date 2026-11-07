@@ -64,6 +64,13 @@
   .bar.amber i{background:linear-gradient(90deg,#8a6411,var(--amber))}
   .foot{margin-top:24px;font-size:.74rem;color:var(--dim);line-height:1.55;text-align:center;font-family:var(--mono)}
   .foot b{color:var(--muted)}
+  .enable{margin-left:auto;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;
+    background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;
+    padding:6px 11px;cursor:pointer}
+  .enable.on{color:var(--mint);border-color:var(--mint-dim)}
+  @keyframes hitflash{0%,100%{background:#0b0e14}50%{background:#3a0d0d}}
+  body.hit-flash{animation:hitflash .9s steps(1,end) infinite}
+  body.hit-flash .hero{border-color:var(--red);box-shadow:0 0 0 2px rgba(242,100,90,.5)}
 </style>
 </head>
 <body>
@@ -71,6 +78,7 @@
   <div class="top">
     <span class="dot" id="dot"></span>
     <span class="title"><b>Puzzle&nbsp;#71</b> &nbsp;·&nbsp; fleet scan console</span>
+    <button id="enable" class="enable" type="button">🔔 Enable alerts</button>
   </div>
   <div class="hero">
     <div class="eyebrow" id="statusline">connecting…</div>
@@ -148,6 +156,7 @@
     if(s.hit){ eye.className='eyebrow hit'; eye.textContent='*** HIT DETECTED — CHECK PHONE ***'; dot.style.background='var(--red)'; }
     else if(s.boxes_online<4){ eye.className='eyebrow warn'; eye.textContent=s.boxes_online+' / 4 cards online · check fleet'; dot.style.background='var(--amber)'; }
     else { eye.textContent='4 / 4 cards online · scanning'; dot.style.background=(bal/s.burn_day<etaDays)?'var(--amber)':'var(--mint)'; }
+    handleHit(!!s.hit);
 
     var age=Math.round((Date.now()-Number(s.updated_ms))/1000);
     var d=new Date(Number(s.updated_ms));
@@ -176,6 +185,41 @@
       .then(function(s){ render(s); tick(); })
       .catch(function(){ /* keep ticking on last good anchor */ });
   }
+  // ---- HIT ALARM (works because the tab stays open) ----
+  var audioCtx=null, notifyOK=false, hitActive=false, hitTitleBlink=null, baseTitle=document.title;
+  function armAudio(){ try{ if(!audioCtx){var C=window.AudioContext||window.webkitAudioContext; if(C)audioCtx=new C();} if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume(); }catch(e){} }
+  function beep(){ if(!audioCtx)return; try{
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='square'; o.frequency.setValueAtTime(988,audioCtx.currentTime);
+    o.frequency.setValueAtTime(1319,audioCtx.currentTime+0.18);
+    g.gain.value=0.0001; g.gain.exponentialRampToValueAtTime(0.25,audioCtx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,audioCtx.currentTime+0.38);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.4);
+  }catch(e){} }
+  window.addEventListener('pointerdown',armAudio);
+  var enableBtn=document.getElementById('enable');
+  enableBtn.addEventListener('click',function(){
+    armAudio(); beep();   // immediate test blip proves sound is armed
+    if('Notification' in window && Notification.permission!=='granted'){
+      Notification.requestPermission().then(function(p){ notifyOK=(p==='granted'); });
+    } else if('Notification' in window){ notifyOK=(Notification.permission==='granted'); }
+    enableBtn.textContent='🔔 Alerts armed'; enableBtn.classList.add('on');
+  });
+  function handleHit(isHit){
+    if(isHit && !hitActive){
+      hitActive=true;
+      document.body.classList.add('hit-flash');
+      try{ if(navigator.vibrate) navigator.vibrate([500,150,500,150,500,150,900]); }catch(e){}
+      if(notifyOK){ try{ new Notification('🚨 P71 HIT FOUND',{body:'A key was found — it is encrypted and safe in 4 places. Open the console and shut the fleet down.',tag:'p71hit',requireInteraction:true}); }catch(e){} }
+      // keep nagging: beep while visible, blink the tab title so a backgrounded tab shows it too
+      setInterval(function(){ if(document.visibilityState==='visible' && hitActive) beep(); },1300);
+      var on=true; hitTitleBlink=setInterval(function(){ document.title=(on?'🚨 P71 HIT — OPEN NOW':'⬛ '+baseTitle); on=!on; },1000);
+    } else if(!isHit && hitActive){
+      hitActive=false; document.body.classList.remove('hit-flash');
+      if(hitTitleBlink){clearInterval(hitTitleBlink);hitTitleBlink=null;} document.title=baseTitle;
+    }
+  }
+
   load(); setInterval(load,20000); setInterval(tick,120);
 })();
 </script>
